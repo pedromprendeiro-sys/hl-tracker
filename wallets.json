@@ -5,5 +5,13 @@
     "min_position_usd": 25000,
     "min_change_usd": 100000,
     "min_change_pct": 20
+  },
+  {
+    "address": "0xc3ed57a7a8fa374af47eba5dd713bc2946f800dd",
+    "name": "Whale 2"
+  },
+  {
+    "address": "0x54c5b295195ffa2613ab4f3893b29afdb8a49558",
+    "name": "Whale 3"
   }
 ]
