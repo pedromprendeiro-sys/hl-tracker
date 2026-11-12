@@ -1,0 +1,9 @@
+[
+  {
+    "address": "0xfc667adba8d4837586078f4fdcdc29804337ca06",
+    "name": "Whale 1",
+    "min_position_usd": 25000,
+    "min_change_usd": 100000,
+    "min_change_pct": 20
+  }
+]

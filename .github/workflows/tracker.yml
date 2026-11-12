@@ -1,0 +1,59 @@
+name: whale-tracker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # GitHub may delay this; runs chain back-to-back via concurrency
+  workflow_dispatch:
+
+# only one run at a time; the next one waits (queued) instead of overlapping
+concurrency:
+  group: tracker
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # for the keepalive commit
+  actions: write    # for saving the state cache
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: state.json
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      - name: Run tracker (~9 min)
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          POLL_SECONDS: "30"
+          RUN_SECONDS: "540"
+          PYTHONIOENCODING: utf-8
+        run: python -u bot.py
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state.json
+          key: state-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # GitHub disables scheduled workflows after 60 days without commits
+      - name: Keepalive
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 50 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "keepalive"
+            git push
+          fi

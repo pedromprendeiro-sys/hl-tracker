@@ -1,0 +1,15 @@
+[Unit]
+Description=Hyperliquid whale tracker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hl-tracker
+ExecStart=/usr/bin/python3 -u bot.py
+Restart=always
+RestartSec=10
+Environment=PYTHONIOENCODING=utf-8
+
+[Install]
+WantedBy=multi-user.target
