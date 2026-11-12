@@ -47,6 +47,14 @@ jobs:
           path: state.json
           key: state-${{ github.run_id }}-${{ github.run_attempt }}
 
+      # chain: start the next run ourselves instead of relying on cron
+      # (dispatch via GITHUB_TOKEN is allowed to trigger runs; concurrency keeps it to 1 running + 1 queued)
+      - name: Relaunch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run tracker.yml --ref main --repo "${{ github.repository }}"
+
       # GitHub disables scheduled workflows after 60 days without commits
       - name: Keepalive
         run: |
