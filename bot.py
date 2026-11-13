@@ -306,8 +306,8 @@ def summary_embed(w, pos, equity, title):
 
 
 # ---------------------------------------------------------------- discord
-def send(embeds, username="Whale Tracker"):
-    url = os.environ.get("DISCORD_WEBHOOK_URL")
+def send(embeds, username="Whale Tracker", url=None):
+    url = url or os.environ.get("DISCORD_WEBHOOK_URL")
     if not url:
         for e in embeds:
             log("[no webhook]", e["title"], "|", e.get("description", "")[:200],

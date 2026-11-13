@@ -36,6 +36,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           SOSO_API_KEY: ${{ secrets.SOSO_API_KEY }}
+          DISCORD_SIGNALS_WEBHOOK_URL: ${{ secrets.DISCORD_SIGNALS_WEBHOOK_URL }}
           POLL_SECONDS: "30"
           RUN_SECONDS: "540"
           PYTHONIOENCODING: utf-8
