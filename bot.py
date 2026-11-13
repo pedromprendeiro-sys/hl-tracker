@@ -322,6 +322,17 @@ def send(embeds, username="Whale Tracker", url=None):
 
 
 # ---------------------------------------------------------------- main loop
+def is_crypto(coin):
+    # main-dex perps are crypto; HIP-3 dexes use "dex:COIN" (stocks, commodities, FX)
+    return ":" not in coin
+
+
+def crypto_filter(w, pos):
+    if not w.get("crypto_only"):
+        return pos
+    return {c: p for c, p in pos.items() if is_crypto(c)}
+
+
 def load_wallets():
     try:
         ws = json.load(open(WALLETS_FILE, encoding="utf-8"))
@@ -362,7 +373,13 @@ def main():
             try:
                 now_ms = int(time.time() * 1000)
                 pos, equity = snapshot(addr)
+                pos = crypto_filter(w, pos)
                 prev = state.get(addr)
+                if prev is not None and w.get("crypto_only"):
+                    # drop non-crypto coins already in the baseline so they don't fire "closed"
+                    for k in ("pos", "alerted"):
+                        if k in prev:
+                            prev[k] = crypto_filter(w, prev[k])
                 if prev is None:
                     send([summary_embed(w, pos, equity, "📡 A seguir nova carteira")])
                 else:
@@ -394,6 +411,7 @@ if __name__ == "__main__":
         load_env()
         for w in load_wallets() or []:
             pos, eq = snapshot(w["address"])
+            pos = crypto_filter(w, pos)
             send([summary_embed(w, pos, eq, "📊 Resumo de posições")])
     else:
         main()
