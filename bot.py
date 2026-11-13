@@ -18,6 +18,8 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+import signals
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 API = "https://api.hyperliquid.xyz/info"
 WALLETS_FILE = os.path.join(BASE, "wallets.json")
@@ -304,7 +306,7 @@ def summary_embed(w, pos, equity, title):
 
 
 # ---------------------------------------------------------------- discord
-def send(embeds):
+def send(embeds, username="Whale Tracker"):
     url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not url:
         for e in embeds:
@@ -313,7 +315,7 @@ def send(embeds):
         return
     for i in range(0, len(embeds), 10):  # max 10 embeds per webhook message
         try:
-            post_json(url, {"username": "Whale Tracker", "embeds": embeds[i:i + 10]})
+            post_json(url, {"username": username, "embeds": embeds[i:i + 10]})
         except Exception as e:
             log("discord send failed:", e)
         time.sleep(1)
@@ -377,6 +379,11 @@ def main():
             except Exception:
                 log("error on", addr)
                 traceback.print_exc()
+        try:
+            signals.check(state, send, log)
+        except Exception:
+            log("signals error")
+            traceback.print_exc()
         save_state(state)
         time.sleep(max(1, poll - (time.time() - t0)))
 

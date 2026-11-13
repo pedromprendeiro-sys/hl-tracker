@@ -20,3 +20,8 @@ Repo must be public (unlimited Actions minutes).
     sudo cp ~/hl-tracker/deploy/hl-tracker.service /etc/systemd/system/
     sudo systemctl daemon-reload && sudo systemctl enable --now hl-tracker
     journalctl -u hl-tracker -f
+
+## Market bottom signals (`signals.py`)
+Every 5 min checks BTC: funding (OKX+HL), open interest drop, OKX retail long/short,
+Coinbase premium and (optional) US spot ETF flows. Alerts when a signal flips; daily summary at 08:00 UTC.
+ETF flows need a free SoSoValue API key in the repo secret `SOSO_API_KEY`.

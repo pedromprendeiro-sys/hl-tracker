@@ -35,6 +35,7 @@ jobs:
       - name: Run tracker (~9 min)
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SOSO_API_KEY: ${{ secrets.SOSO_API_KEY }}
           POLL_SECONDS: "30"
           RUN_SECONDS: "540"
           PYTHONIOENCODING: utf-8
