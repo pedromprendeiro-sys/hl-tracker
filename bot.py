@@ -12,6 +12,7 @@ Config:
 import json
 import os
 import sys
+import re
 import time
 import traceback
 import urllib.error
@@ -311,7 +312,7 @@ def send(embeds, username="Whale Tracker", url=None):
     if not url:
         for e in embeds:
             log("[no webhook]", e["title"], "|", e.get("description", "")[:200],
-                "|", "; ".join(f"{f['name']}={f['value']}" for f in e["fields"]))
+                "|", "; ".join(f"{f['name']}={f['value']}" for f in e.get("fields", [])))
         return
     for i in range(0, len(embeds), 10):  # max 10 embeds per webhook message
         try:
@@ -327,10 +328,32 @@ def is_crypto(coin):
     return ":" not in coin
 
 
-def crypto_filter(w, pos):
-    if not w.get("crypto_only"):
-        return pos
-    return {c: p for c, p in pos.items() if is_crypto(c)}
+_HIP3 = re.compile(r"(?<![\w:])[a-z0-9]+:[A-Z0-9]")
+
+
+def is_noncrypto_event(e):
+    return bool(_HIP3.search(e["title"]))
+
+
+def digest_line(e):
+    val = e["fields"][0]["value"] if e["fields"] else ""
+    return f"`{time.strftime('%H:%M', time.gmtime())}` {e['title']} · {val}"
+
+
+def digest_embeds(w, lines, minutes):
+    shown = lines[-60:]
+    if len(lines) > len(shown):
+        shown = [f"… {len(lines) - len(shown)} eventos mais antigos omitidos"] + shown
+    chunks, cur = [], ""
+    for ln in shown:
+        if len(cur) + len(ln) + 1 > 3900:
+            chunks.append(cur)
+            cur = ""
+        cur += ln + "\n"
+    chunks.append(cur)
+    return [embed("info", f"🗂️ Resumo não-cripto ({len(lines)} eventos, ~{minutes} min)"
+                  + (f" {i + 1}/{len(chunks)}" if len(chunks) > 1 else ""), w, [], c)
+            for i, c in enumerate(chunks)]
 
 
 def load_wallets():
@@ -373,26 +396,39 @@ def main():
             try:
                 now_ms = int(time.time() * 1000)
                 pos, equity = snapshot(addr)
-                pos = crypto_filter(w, pos)
                 prev = state.get(addr)
-                if prev is not None and w.get("crypto_only"):
-                    # drop non-crypto coins already in the baseline so they don't fire "closed"
+                digest = w.get("digest_noncrypto")
+                if prev is not None and digest and not prev.get("nc_seeded"):
+                    # non-crypto coins were filtered out before: re-add them silently
                     for k in ("pos", "alerted"):
-                        if k in prev:
-                            prev[k] = crypto_filter(w, prev[k])
+                        prev.setdefault(k, {})
+                        for c, p in pos.items():
+                            if not is_crypto(c):
+                                prev[k].setdefault(c, p)
                 if prev is None:
                     send([summary_embed(w, pos, equity, "📡 A seguir nova carteira")])
+                    prev = {"alerted": dict(pos), "last_alert": {}}
                 else:
                     base = prev.setdefault("alerted", dict(prev["pos"]))
                     last = prev.setdefault("last_alert", {})
                     fills = fills_since(addr, prev["ts"] - 5000) if pos != prev["pos"] else []
                     events = diff(w, base, pos, fills, prev["pos"], last)
+                    if digest:
+                        later = [e for e in events if is_noncrypto_event(e)]
+                        events = [e for e in events if not is_noncrypto_event(e)]
+                        if later:
+                            if not prev.get("digest"):
+                                prev["digest_ts"] = time.time()
+                            prev.setdefault("digest", []).extend(digest_line(e) for e in later)
                     if events:
                         log(short(addr), f"{len(events)} event(s)")
                         send(events)
-                state[addr] = {"ts": now_ms, "pos": pos, "equity": equity,
-                               "alerted": (prev or {}).get("alerted", dict(pos)),
-                               "last_alert": (prev or {}).get("last_alert", {})}
+                    mins = w.get("digest_min", 60)
+                    if prev.get("digest") and time.time() - prev.get("digest_ts", 0) >= mins * 60:
+                        send(digest_embeds(w, prev["digest"], mins))
+                        prev["digest"] = []
+                prev.update(ts=now_ms, pos=pos, equity=equity, nc_seeded=bool(digest))
+                state[addr] = prev
             except Exception:
                 log("error on", addr)
                 traceback.print_exc()
@@ -411,7 +447,6 @@ if __name__ == "__main__":
         load_env()
         for w in load_wallets() or []:
             pos, eq = snapshot(w["address"])
-            pos = crypto_filter(w, pos)
             send([summary_embed(w, pos, eq, "📊 Resumo de posições")])
     else:
         main()

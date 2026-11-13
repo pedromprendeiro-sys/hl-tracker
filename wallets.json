@@ -5,7 +5,8 @@
     "min_position_usd": 25000,
     "min_change_usd": 100000,
     "min_change_pct": 20,
-    "crypto_only": true
+    "digest_noncrypto": true,
+    "digest_min": 60
   },
   {
     "address": "0xc3ed57a7a8fa374af47eba5dd713bc2946f800dd",
