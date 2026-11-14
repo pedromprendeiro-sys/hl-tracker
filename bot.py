@@ -397,7 +397,16 @@ def main():
                 now_ms = int(time.time() * 1000)
                 pos, equity = snapshot(addr)
                 prev = state.get(addr)
-                digest = w.get("digest_noncrypto")
+                if w.get("crypto_only", True):
+                    # ignore HIP-3 (stocks/commodities/FX) entirely; also drop them from
+                    # stored state so they don't show up as "closed"
+                    pos = {c: p for c, p in pos.items() if is_crypto(c)}
+                    if prev is not None:
+                        for k in ("pos", "alerted", "last_alert"):
+                            if isinstance(prev.get(k), dict):
+                                prev[k] = {c: v for c, v in prev[k].items() if is_crypto(c)}
+                        prev.pop("digest", None)
+                digest = w.get("digest_noncrypto") and not w.get("crypto_only", True)
                 if prev is not None and digest and not prev.get("nc_seeded"):
                     # non-crypto coins were filtered out before: re-add them silently
                     for k in ("pos", "alerted"):
