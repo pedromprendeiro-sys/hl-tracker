@@ -23,5 +23,17 @@
   {
     "address": "0x77375a8c9d13bf79afb2a87f1b0ac1dfd5f5bf66",
     "name": "Whale 5"
+  },
+  {
+    "address": "0x880ac484a1743862989a441d6d867238c7aa311c",
+    "name": "Whale 6"
+  },
+  {
+    "address": "0xb829fd12a23c88e0f1eb85238799f8fd400a3a81",
+    "name": "Whale 7"
+  },
+  {
+    "address": "0x37b81ab9e3ab04b9e3738e4891621205aaa31fd5",
+    "name": "Whale 8"
   }
 ]
